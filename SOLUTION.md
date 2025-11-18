@@ -1,508 +1,428 @@
-# Solution for Task calc-20251117234937
+# Solution for Task github-alove20-Hello-World-11
 
-**Summary**: I'll create a comprehensive Calculator API with four arithmetic operation endpoints (add, subtract, multiply, divide) using .NET 9 Web API best practices. The solution includes proper error handling, input validation, API documentation, and follows RESTful principles with JSON responses.
+**Summary**: I'll create a set of creative and complex math-solving endpoints including matrix operations, polynomial root finding, numerical integration, statistical analysis, and fractal generation. These endpoints will demonstrate advanced mathematical capabilities while maintaining clean, well-documented code.
 
 **Implementation**
 
-**File: `Hello-World/Controllers/CalculatorController.cs`**
+**File: `Hello-World/Controllers/MathController.cs`**
 ```csharp
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hello_World.Controllers
 {
-    /// <summary>
-    /// Calculator API controller providing basic arithmetic operations
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Produces("application/json")]
-    public class CalculatorController : ControllerBase
+    public class MathController : ControllerBase
     {
-        private readonly ILogger<CalculatorController> _logger;
-
-        public CalculatorController(ILogger<CalculatorController> logger)
-        {
-            _logger = logger;
-        }
-
         /// <summary>
-        /// Adds two numbers
+        /// Solves a system of linear equations using Gaussian elimination
         /// </summary>
-        /// <param name="a">First number</param>
-        /// <param name="b">Second number</param>
-        /// <returns>Sum of a and b</returns>
-        /// <response code="200">Returns the sum</response>
-        /// <response code="400">If the input parameters are invalid</response>
-        [HttpGet("add")]
-        [ProducesResponseType(typeof(CalculationResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        public ActionResult<CalculationResult> Add([FromQuery] double a, [FromQuery] double b)
+        /// <param name="request">The matrix equation Ax = b</param>
+        /// <returns>Solution vector x</returns>
+        [HttpPost("solve-linear-system")]
+        public ActionResult<LinearSystemResult> SolveLinearSystem([FromBody] LinearSystemRequest request)
         {
             try
             {
-                if (double.IsNaN(a) || double.IsNaN(b) || double.IsInfinity(a) || double.IsInfinity(b))
+                if (request.Matrix == null || request.Constants == null)
                 {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Invalid input parameters",
-                        Message = "Parameters must be valid numbers"
-                    });
+                    return BadRequest("Matrix and constants are required");
                 }
 
-                double result = a + b;
-
-                if (double.IsInfinity(result))
+                int n = request.Constants.Length;
+                if (request.Matrix.Length != n || request.Matrix.Any(row => row.Length != n))
                 {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Calculation overflow",
-                        Message = "The result exceeds the maximum representable value"
-                    });
+                    return BadRequest("Matrix must be square and match constants length");
                 }
 
-                _logger.LogInformation("Addition: {A} + {B} = {Result}", a, b, result);
-
-                return Ok(new CalculationResult
+                var solution = GaussianElimination(request.Matrix, request.Constants);
+                
+                return Ok(new LinearSystemResult
                 {
-                    Operation = "addition",
-                    OperandA = a,
-                    OperandB = b,
-                    Result = result,
-                    Formula = $"{a} + {b} = {result}"
+                    Solution = solution,
+                    Steps = "Solved using Gaussian elimination with partial pivoting"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error performing addition");
-                return BadRequest(new ErrorResponse 
-                { 
-                    Error = "Calculation error",
-                    Message = ex.Message
-                });
+                return BadRequest($"Error solving system: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Subtracts second number from first number
+        /// Finds roots of a polynomial using the Newton-Raphson method
         /// </summary>
-        /// <param name="a">First number (minuend)</param>
-        /// <param name="b">Second number (subtrahend)</param>
-        /// <returns>Difference of a and b</returns>
-        /// <response code="200">Returns the difference</response>
-        /// <response code="400">If the input parameters are invalid</response>
-        [HttpGet("subtract")]
-        [ProducesResponseType(typeof(CalculationResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        public ActionResult<CalculationResult> Subtract([FromQuery] double a, [FromQuery] double b)
+        /// <param name="request">Polynomial coefficients (highest degree first)</param>
+        /// <returns>Approximate roots of the polynomial</returns>
+        [HttpPost("polynomial-roots")]
+        public ActionResult<PolynomialRootsResult> FindPolynomialRoots([FromBody] PolynomialRequest request)
         {
             try
             {
-                if (double.IsNaN(a) || double.IsNaN(b) || double.IsInfinity(a) || double.IsInfinity(b))
+                if (request.Coefficients == null || request.Coefficients.Length < 2)
                 {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Invalid input parameters",
-                        Message = "Parameters must be valid numbers"
-                    });
+                    return BadRequest("At least 2 coefficients required");
                 }
 
-                double result = a - b;
-
-                if (double.IsInfinity(result))
+                var roots = FindRoots(request.Coefficients, request.MaxIterations ?? 1000, request.Tolerance ?? 1e-10);
+                
+                return Ok(new PolynomialRootsResult
                 {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Calculation overflow",
-                        Message = "The result exceeds the maximum representable value"
-                    });
-                }
-
-                _logger.LogInformation("Subtraction: {A} - {B} = {Result}", a, b, result);
-
-                return Ok(new CalculationResult
-                {
-                    Operation = "subtraction",
-                    OperandA = a,
-                    OperandB = b,
-                    Result = result,
-                    Formula = $"{a} - {b} = {result}"
+                    Coefficients = request.Coefficients,
+                    Roots = roots,
+                    Degree = request.Coefficients.Length - 1
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error performing subtraction");
-                return BadRequest(new ErrorResponse 
-                { 
-                    Error = "Calculation error",
-                    Message = ex.Message
-                });
+                return BadRequest($"Error finding roots: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Multiplies two numbers
+        /// Performs numerical integration using Simpson's rule
         /// </summary>
-        /// <param name="a">First number (multiplicand)</param>
-        /// <param name="b">Second number (multiplier)</param>
-        /// <returns>Product of a and b</returns>
-        /// <response code="200">Returns the product</response>
-        /// <response code="400">If the input parameters are invalid</response>
-        [HttpGet("multiply")]
-        [ProducesResponseType(typeof(CalculationResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        public ActionResult<CalculationResult> Multiply([FromQuery] double a, [FromQuery] double b)
+        /// <param name="request">Integration parameters</param>
+        /// <returns>Approximate integral value</returns>
+        [HttpPost("integrate")]
+        public ActionResult<IntegrationResult> NumericalIntegration([FromBody] IntegrationRequest request)
         {
             try
             {
-                if (double.IsNaN(a) || double.IsNaN(b) || double.IsInfinity(a) || double.IsInfinity(b))
+                if (request.Lower >= request.Upper)
                 {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Invalid input parameters",
-                        Message = "Parameters must be valid numbers"
-                    });
+                    return BadRequest("Lower bound must be less than upper bound");
                 }
 
-                double result = a * b;
+                int n = request.Intervals ?? 1000;
+                if (n % 2 != 0) n++; // Simpson's rule requires even number of intervals
 
-                if (double.IsInfinity(result))
+                var result = SimpsonsRule(request.FunctionType, request.Lower, request.Upper, n);
+                
+                return Ok(new IntegrationResult
                 {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Calculation overflow",
-                        Message = "The result exceeds the maximum representable value"
-                    });
-                }
-
-                _logger.LogInformation("Multiplication: {A} * {B} = {Result}", a, b, result);
-
-                return Ok(new CalculationResult
-                {
-                    Operation = "multiplication",
-                    OperandA = a,
-                    OperandB = b,
+                    FunctionType = request.FunctionType,
+                    Lower = request.Lower,
+                    Upper = request.Upper,
                     Result = result,
-                    Formula = $"{a} * {b} = {result}"
+                    Method = "Simpson's Rule",
+                    Intervals = n
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error performing multiplication");
-                return BadRequest(new ErrorResponse 
-                { 
-                    Error = "Calculation error",
-                    Message = ex.Message
-                });
+                return BadRequest($"Error computing integral: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Divides first number by second number
+        /// Calculates advanced statistical measures for a dataset
         /// </summary>
-        /// <param name="a">Dividend</param>
-        /// <param name="b">Divisor</param>
-        /// <returns>Quotient of a divided by b</returns>
-        /// <response code="200">Returns the quotient</response>
-        /// <response code="400">If the input parameters are invalid or division by zero</response>
-        [HttpGet("divide")]
-        [ProducesResponseType(typeof(CalculationResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        public ActionResult<CalculationResult> Divide([FromQuery] double a, [FromQuery] double b)
+        /// <param name="request">Dataset to analyze</param>
+        /// <returns>Comprehensive statistical analysis</returns>
+        [HttpPost("statistics")]
+        public ActionResult<StatisticsResult> AdvancedStatistics([FromBody] StatisticsRequest request)
         {
             try
             {
-                if (double.IsNaN(a) || double.IsNaN(b) || double.IsInfinity(a) || double.IsInfinity(b))
+                if (request.Data == null || request.Data.Length == 0)
                 {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Invalid input parameters",
-                        Message = "Parameters must be valid numbers"
-                    });
+                    return BadRequest("Data array cannot be empty");
                 }
 
-                if (b == 0)
+                var sorted = request.Data.OrderBy(x => x).ToArray();
+                var mean = sorted.Average();
+                var variance = sorted.Select(x => Math.Pow(x - mean, 2)).Average();
+                var stdDev = Math.Sqrt(variance);
+                var skewness = CalculateSkewness(sorted, mean, stdDev);
+                var kurtosis = CalculateKurtosis(sorted, mean, stdDev);
+                
+                return Ok(new StatisticsResult
                 {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Division by zero",
-                        Message = "Cannot divide by zero"
-                    });
-                }
-
-                double result = a / b;
-
-                if (double.IsInfinity(result) || double.IsNaN(result))
-                {
-                    return BadRequest(new ErrorResponse 
-                    { 
-                        Error = "Calculation error",
-                        Message = "The result is undefined or infinite"
-                    });
-                }
-
-                _logger.LogInformation("Division: {A} / {B} = {Result}", a, b, result);
-
-                return Ok(new CalculationResult
-                {
-                    Operation = "division",
-                    OperandA = a,
-                    OperandB = b,
-                    Result = result,
-                    Formula = $"{a} / {b} = {result}"
+                    Count = sorted.Length,
+                    Mean = mean,
+                    Median = CalculateMedian(sorted),
+                    Mode = CalculateMode(sorted),
+                    Variance = variance,
+                    StandardDeviation = stdDev,
+                    Skewness = skewness,
+                    Kurtosis = kurtosis,
+                    Range = sorted.Last() - sorted.First(),
+                    Min = sorted.First(),
+                    Max = sorted.Last(),
+                    Q1 = CalculatePercentile(sorted, 25),
+                    Q3 = CalculatePercentile(sorted, 75),
+                    IQR = CalculatePercentile(sorted, 75) - CalculatePercentile(sorted, 25)
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error performing division");
-                return BadRequest(new ErrorResponse 
-                { 
-                    Error = "Calculation error",
-                    Message = ex.Message
-                });
+                return BadRequest($"Error calculating statistics: {ex.Message}");
             }
         }
-    }
-
-    /// <summary>
-    /// Represents the result of a calculation
-    /// </summary>
-    public class CalculationResult
-    {
-        /// <summary>
-        /// The arithmetic operation performed
-        /// </summary>
-        public string Operation { get; set; } = string.Empty;
 
         /// <summary>
-        /// First operand
+        /// Generates points for the Mandelbrot set
         /// </summary>
-        public double OperandA { get; set; }
-
-        /// <summary>
-        /// Second operand
-        /// </summary>
-        public double OperandB { get; set; }
-
-        /// <summary>
-        /// Result of the calculation
-        /// </summary>
-        public double Result { get; set; }
-
-        /// <summary>
-        /// Formula representation of the calculation
-        /// </summary>
-        public string Formula { get; set; } = string.Empty;
-    }
-
-    /// <summary>
-    /// Represents an error response
-    /// </summary>
-    public class ErrorResponse
-    {
-        /// <summary>
-        /// Error type
-        /// </summary>
-        public string Error { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Detailed error message
-        /// </summary>
-        public string Message { get; set; } = string.Empty;
-    }
-}
-```
-
-**File: `Hello-World/Program.cs`**
-```csharp
-using Microsoft.OpenApi.Models;
-using System.Reflection;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-builder.Services.AddControllers();
-
-// Add API Explorer for Swagger
-builder.Services.AddEndpointsApiExplorer();
-
-// Configure Swagger/OpenAPI
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Version = "v1",
-        Title = "Calculator API",
-        Description = "A simple calculator API providing basic arithmetic operations",
-        Contact = new OpenApiContact
+        /// <param name="request">Mandelbrot generation parameters</param>
+        /// <returns>Grid of iteration counts</returns>
+        [HttpPost("mandelbrot")]
+        public ActionResult<MandelbrotResult> GenerateMandelbrot([FromBody] MandelbrotRequest request)
         {
-            Name = "Calculator API Team"
+            try
+            {
+                int width = request.Width ?? 100;
+                int height = request.Height ?? 100;
+                int maxIterations = request.MaxIterations ?? 100;
+                double xMin = request.XMin ?? -2.5;
+                double xMax = request.XMax ?? 1.0;
+                double yMin = request.YMin ?? -1.0;
+                double yMax = request.YMax ?? 1.0;
+
+                var grid = new int[height][];
+                for (int i = 0; i < height; i++)
+                {
+                    grid[i] = new int[width];
+                    for (int j = 0; j < width; j++)
+                    {
+                        double x0 = xMin + (xMax - xMin) * j / width;
+                        double y0 = yMin + (yMax - yMin) * i / height;
+                        grid[i][j] = MandelbrotIterations(x0, y0, maxIterations);
+                    }
+                }
+
+                return Ok(new MandelbrotResult
+                {
+                    Grid = grid,
+                    Width = width,
+                    Height = height,
+                    MaxIterations = maxIterations,
+                    Bounds = new { xMin, xMax, yMin, yMax }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error generating Mandelbrot set: {ex.Message}");
+            }
         }
-    });
 
-    // Enable XML comments for better documentation
-    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
-    if (File.Exists(xmlPath))
-    {
-        options.IncludeXmlComments(xmlPath);
-    }
-});
+        /// <summary>
+        /// Calculates eigenvalues and eigenvectors of a matrix
+        /// </summary>
+        /// <param name="request">Square matrix</param>
+        /// <returns>Dominant eigenvalue and eigenvector</returns>
+        [HttpPost("eigenvalues")]
+        public ActionResult<EigenResult> CalculateEigenvalues([FromBody] MatrixRequest request)
+        {
+            try
+            {
+                if (request.Matrix == null || request.Matrix.Length == 0)
+                {
+                    return BadRequest("Matrix cannot be empty");
+                }
 
-// Add CORS policy for development
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+                int n = request.Matrix.Length;
+                if (request.Matrix.Any(row => row.Length != n))
+                {
+                    return BadRequest("Matrix must be square");
+                }
 
-var app = builder.Build();
+                var (eigenvalue, eigenvector) = PowerMethod(request.Matrix, request.MaxIterations ?? 1000, request.Tolerance ?? 1e-10);
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Calculator API v1");
-        options.RoutePrefix = string.Empty; // Serve Swagger UI at root
-    });
-}
+                return Ok(new EigenResult
+                {
+                    DominantEigenvalue = eigenvalue,
+                    DominantEigenvector = eigenvector,
+                    Method = "Power Method"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error calculating eigenvalues: {ex.Message}");
+            }
+        }
 
-app.UseHttpsRedirection();
+        // Helper methods
 
-app.UseCors("AllowAll");
+        private double[] GaussianElimination(double[][] A, double[] b)
+        {
+            int n = b.Length;
+            double[][] augmented = new double[n][];
+            
+            for (int i = 0; i < n; i++)
+            {
+                augmented[i] = new double[n + 1];
+                Array.Copy(A[i], augmented[i], n);
+                augmented[i][n] = b[i];
+            }
 
-app.UseAuthorization();
+            // Forward elimination with partial pivoting
+            for (int i = 0; i < n; i++)
+            {
+                int maxRow = i;
+                for (int k = i + 1; k < n; k++)
+                {
+                    if (Math.Abs(augmented[k][i]) > Math.Abs(augmented[maxRow][i]))
+                        maxRow = k;
+                }
 
-app.MapControllers();
+                var temp = augmented[i];
+                augmented[i] = augmented[maxRow];
+                augmented[maxRow] = temp;
 
-app.Run();
-```
+                for (int k = i + 1; k < n; k++)
+                {
+                    double factor = augmented[k][i] / augmented[i][i];
+                    for (int j = i; j <= n; j++)
+                    {
+                        augmented[k][j] -= factor * augmented[i][j];
+                    }
+                }
+            }
 
-**File: `Hello-World/Hello-World.csproj`**
-```xml
-<Project Sdk="Microsoft.NET.Sdk.Web">
+            // Back substitution
+            double[] x = new double[n];
+            for (int i = n - 1; i >= 0; i--)
+            {
+                x[i] = augmented[i][n];
+                for (int j = i + 1; j < n; j++)
+                {
+                    x[i] -= augmented[i][j] * x[j];
+                }
+                x[i] /= augmented[i][i];
+            }
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>Hello_World</RootNamespace>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
-  </PropertyGroup>
+            return x;
+        }
 
-  <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-  </ItemGroup>
+        private List<double> FindRoots(double[] coefficients, int maxIterations, double tolerance)
+        {
+            var roots = new List<double>();
+            int degree = coefficients.Length - 1;
 
-</Project>
-```
+            for (int attempt = 0; attempt < degree; attempt++)
+            {
+                double x = attempt * 0.5 - 1.0; // Different starting points
+                
+                for (int iter = 0; iter < maxIterations; iter++)
+                {
+                    double fx = EvaluatePolynomial(coefficients, x);
+                    double fpx = EvaluatePolynomialDerivative(coefficients, x);
+                    
+                    if (Math.Abs(fpx) < tolerance) break;
+                    
+                    double xNew = x - fx / fpx;
+                    
+                    if (Math.Abs(xNew - x) < tolerance)
+                    {
+                        if (!roots.Any(r => Math.Abs(r - xNew) < tolerance * 10))
+                        {
+                            roots.Add(Math.Round(xNew, 10));
+                        }
+                        break;
+                    }
+                    x = xNew;
+                }
+            }
 
-**File: `Hello-World/Hello-World.http`**
-```http
-### Calculator API Tests
+            return roots.Distinct().OrderBy(x => x).ToList();
+        }
 
-### Health Check
-GET http://localhost:5000/weatherforecast
+        private double EvaluatePolynomial(double[] coefficients, double x)
+        {
+            double result = 0;
+            double power = 1;
+            for (int i = coefficients.Length - 1; i >= 0; i--)
+            {
+                result += coefficients[i] * power;
+                power *= x;
+            }
+            return result;
+        }
 
-### Addition
-GET http://localhost:5000/api/calculator/add?a=10&b=5
+        private double EvaluatePolynomialDerivative(double[] coefficients, double x)
+        {
+            double result = 0;
+            double power = 1;
+            for (int i = coefficients.Length - 1; i > 0; i--)
+            {
+                result += coefficients[i - 1] * i * power;
+                power *= x;
+            }
+            return result;
+        }
 
-### Addition with decimals
-GET http://localhost:5000/api/calculator/add?a=10.5&b=5.25
+        private double SimpsonsRule(string functionType, double lower, double upper, int n)
+        {
+            double h = (upper - lower) / n;
+            double sum = EvaluateFunction(functionType, lower) + EvaluateFunction(functionType, upper);
 
-### Addition with negative numbers
-GET http://localhost:5000/api/calculator/add?a=-10&b=5
+            for (int i = 1; i < n; i++)
+            {
+                double x = lower + i * h;
+                sum += EvaluateFunction(functionType, x) * (i % 2 == 0 ? 2 : 4);
+            }
 
-### Subtraction
-GET http://localhost:5000/api/calculator/subtract?a=10&b=5
+            return sum * h / 3;
+        }
 
-### Subtraction resulting in negative
-GET http://localhost:5000/api/calculator/subtract?a=5&b=10
+        private double EvaluateFunction(string functionType, double x)
+        {
+            return functionType.ToLower() switch
+            {
+                "sin" => Math.Sin(x),
+                "cos" => Math.Cos(x),
+                "exp" => Math.Exp(x),
+                "sqrt" => Math.Sqrt(Math.Abs(x)),
+                "x^2" => x * x,
+                "x^3" => x * x * x,
+                "1/x" => x != 0 ? 1 / x : 0,
+                "ln" => x > 0 ? Math.Log(x) : 0,
+                _ => x * x
+            };
+        }
 
-### Multiplication
-GET http://localhost:5000/api/calculator/multiply?a=10&b=5
+        private double CalculateMedian(double[] sorted)
+        {
+            int n = sorted.Length;
+            return n % 2 == 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[n / 2];
+        }
 
-### Multiplication with decimals
-GET http://localhost:5000/api/calculator/multiply?a=2.5&b=4
+        private List<double> CalculateMode(double[] sorted)
+        {
+            var frequency = sorted.GroupBy(x => x)
+                                 .Select(g => new { Value = g.Key, Count = g.Count() })
+                                 .OrderByDescending(x => x.Count)
+                                 .ToList();
+            
+            int maxCount = frequency.First().Count;
+            if (maxCount == 1) return new List<double>();
+            
+            return frequency.Where(x => x.Count == maxCount).Select(x => x.Value).ToList();
+        }
 
-### Division
-GET http://localhost:5000/api/calculator/divide?a=10&b=5
+        private double CalculatePercentile(double[] sorted, double percentile)
+        {
+            double index = (percentile / 100.0) * (sorted.Length - 1);
+            int lower = (int)Math.Floor(index);
+            int upper = (int)Math.Ceiling(index);
+            double weight = index - lower;
+            return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+        }
 
-### Division with decimals
-GET http://localhost:5000/api/calculator/divide?a=10&b=3
+        private double CalculateSkewness(double[] data, double mean, double stdDev)
+        {
+            if (stdDev == 0) return 0;
+            return data.Average(x => Math.Pow((x - mean) / stdDev, 3));
+        }
 
-### Division by zero (should return error)
-GET http://localhost:5000/api/calculator/divide?a=10&b=0
+        private double CalculateKurtosis(double[] data, double mean, double stdDev)
+        {
+            if (stdDev == 0) return 0;
+            return data.Average(x => Math.Pow((x - mean) / stdDev, 4)) - 3;
+        }
 
-### Large number addition
-GET http://localhost:5000/api/calculator/add?a=999999999&b=1
-
-### Zero operations
-GET http://localhost:5000/api/calculator/multiply?a=0&b=100
-```
-
-**File: `README.md`**
-```markdown
-# Calculator API
-
-A .NET 9 Web API providing basic arithmetic operations (addition, subtraction, multiplication, and division).
-
-## Features
-
-- ✅ RESTful API design
-- ✅ Four basic arithmetic operations
-- ✅ Comprehensive error handling
-- ✅ Input validation
-- ✅ Division by zero protection
-- ✅ Overflow detection
-- ✅ JSON responses
-- ✅ Swagger/OpenAPI documentation
-- ✅ Logging support
-- ✅ XML documentation comments
-
-## Endpoints
-
-### Addition
-```
-GET /api/calculator/add?a={number}&b={number}
-```
-Returns the sum of two numbers.
-
-**Example:**
-```
-GET /api/calculator/add?a=10&b=5
-```
-
-**Response:**
-```json
-{
-  "operation": "addition",
-  "operandA": 10,
-  "operandB": 5,
-  "result": 15,
-  "formula": "10 + 5 = 15"
-}
-```
-
-### Subtraction
-```
-GET /api/calculator/subtract?a={number}&b={number}
-```
-Subtracts the second number from the first.
-
-**Example:**
-```
-GET /api/calculator/subtract?a=10&b=5
-```
-
-**Response:**
-```json
-{
-  "operation": "subtraction",
-  "operandA": 
+        private int MandelbrotIterations(double x0
