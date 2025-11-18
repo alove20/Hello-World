@@ -1,24 +1,3 @@
-# Solution for Task github-alove20-Hello-World-18
-
-This solution introduces a new `MathController` to the `Hello-World` project, providing several endpoints for complex mathematical operations as requested.
-
-### Key Features:
-
-1.  **Quadratic Equation Solver**: An endpoint `/api/math/quadratic` that solves equations of the form `ax^2 + bx + c = 0`. It correctly handles real and complex roots and returns a structured JSON response.
-2.  **Fibonacci Number Generator**: An endpoint `/api/math/fibonacci` that calculates the *n*th number in the Fibonacci sequence. It uses `BigInteger` to support very large numbers and includes a reasonable input limit to prevent abuse.
-3.  **Prime Number Check**: An endpoint `/api/math/isprime/{number}` that efficiently determines if a given number is prime.
-
-### Design Choices:
-
--   **New Controller**: A dedicated `MathController` is created to logically group the new math-related endpoints, keeping the codebase organized and scalable.
--   **Custom Models**: New model classes (`QuadraticSolution`, `ComplexNumber`) are introduced in a new `Models` directory. This is a standard practice in ASP.NET Core for structuring data transfer objects and promotes clean architecture.
--   **Code Quality**: The code is well-documented with XML comments, which will automatically generate helpful Swagger/OpenAPI documentation. It includes robust error handling for invalid inputs and follows best practices.
--   **Efficiency**: The algorithms chosen are efficient for their purpose. The Fibonacci function is iterative to avoid stack overflows, and the prime check uses a standard, optimized trial division method.
-
-These additions fulfill the task requirements by adding creative and complex math-solving capabilities to the API in a clean, professional, and well-structured manner.
-
-**File: `Hello-World/Controllers/MathController.cs`**
-```csharp
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Numerics;
@@ -144,47 +123,3 @@ public class MathController : ControllerBase
         return Ok(true);
     }
 }
-```
-
-**File: `Hello-World/Models/MathModels.cs`**
-```csharp
-namespace HelloWorld.Models;
-
-/// <summary>
-/// Represents the solution of a quadratic equation.
-/// </summary>
-public class QuadraticSolution
-{
-    /// <summary>
-    /// A description of the type of roots found (e.g., "Two distinct real roots").
-    /// </summary>
-    public string SolutionType { get; set; }
-
-    /// <summary>
-    /// A list of the roots of the equation.
-    /// </summary>
-    public List<ComplexNumber> Roots { get; set; }
-
-    public QuadraticSolution()
-    {
-        Roots = new List<ComplexNumber>();
-        SolutionType = string.Empty;
-    }
-}
-
-/// <summary>
-/// Represents a complex number with real and imaginary parts.
-/// </summary>
-public class ComplexNumber
-{
-    /// <summary>
-    /// The real part of the complex number.
-    /// </summary>
-    public double Real { get; set; }
-
-    /// <summary>
-    /// The imaginary part of the complex number.
-    /// </summary>
-    public double Imaginary { get; set; }
-}
-```
